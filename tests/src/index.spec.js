@@ -55,6 +55,18 @@ describe('Electron Storage', () => {
   });
 
   describe('storage.get()', () => {
+    it('creates returns data if file exists and options contains create: true', (done) => {
+      storage.set('data.json', {it: 'exists'}, (error) =>{
+        chai.expect(error).to.equal(null);
+        storage.get('data.json', {create: true}, (error, data) => {
+          chai.expect(error).to.equal(null);
+          chai.expect(data).to.deep.equal({it: 'exists'});
+          done();
+        });
+      });
+    });
+  });
+  describe('storage.get()', () => {
     it('receives the data from a json file', (done) => {
       const json = JSON.stringify({ awesome: 'data' });
       fs.writeFile(path.join(fakeAppDataDir, 'my-awesome-data.json'), json, (err) => {
