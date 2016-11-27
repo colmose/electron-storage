@@ -45,7 +45,11 @@ describe('Electron Storage', () => {
       storage.get('my-missing-data.json', {create: true}, (error, data) => {
         chai.expect(error).to.equal(null);
         chai.expect(data).to.deep.equal({});
-        done();
+        storage.get('my-missing-data.json', (error, data)=>{
+          chai.expect(error).to.equal(null);
+          chai.expect(data).to.deep.equal({});
+          done();
+        });
       });
     });
   });
