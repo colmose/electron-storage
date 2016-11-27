@@ -41,6 +41,16 @@ describe('Electron Storage', () => {
   });
 
   describe('storage.get()', () => {
+    it('creates a new file if none exists and options contains create: true', (done) => {
+      storage.get('my-missing-data.json', {create: true}, (error, data) => {
+        chai.expect(error).to.equal(null);
+        chai.expect(data).to.deep.equal({});
+        done();
+      });
+    });
+  });
+
+  describe('storage.get()', () => {
     it('receives the data from a json file', (done) => {
       const json = JSON.stringify({ awesome: 'data' });
       fs.writeFile(path.join(fakeAppDataDir, 'my-awesome-data.json'), json, (err) => {

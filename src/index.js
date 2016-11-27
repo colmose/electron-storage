@@ -17,9 +17,11 @@ import {
  *        from the file in the specefied path
  *
  * @param  {string} filePath - path to the file relative to the `userData` folder
+ * @param  {?object | undefined} opts - optional options object
+ * @param  {boolean} opts.create - true if user wants to create new file on ENOENT
  * @param  {function} cb - a callback function
  */
-function _get(filePath, cb) {
+function _get(filePath, opts, cb) {
   const fullPath = processPath(filePath);
   return fs.readFile(fullPath, { encoding: 'utf8' }, (err, json) => {
     if (!err) {
@@ -33,29 +35,42 @@ function _get(filePath, cb) {
     }
 
     if (err.code === 'ENOENT') {
-      err.message = `The file in path ${fullPath} doesn\'t exist`; /* eslint no-param-reassign: 0 */
+      if(opts && opts.create){
+       return _set(filePath, "{}", err => {
+          if(err) return cb(new Error('Error setting newly created file'));
+          return _get(filePath, null,  cb);
+        })
+      } else {
+        err.message = `The file in path ${fullPath} doesn\'t exist`;
+        /* eslint no-param-reassign: 0 */
+        return cb(err);
+      }
     }
-
-    return cb(err);
   });
 }
 
 /**
  * get - function the gets filePath and a callback and returns a parse json
- *       from the file in the specefied path
+ *       from the file in the specified path
  *
- * @param  {string} filePath - path to the file relative to the `userData` folder
- * @param  {undefined | function} cb - an optional callback function
+ * @param  {Object[]} args - array of arguments
+ * @param  {string} args.filePath - path to the file relative to the `userData` folder
+ * @param  {undefined | object} args.opts -  optional options object
+ * @param  {boolean} args.opts.create -  true if user wants to create empty file on ENOENT
+ * @param  {undefined | function} args.cb - an optional callback function
  * @return {undefined | Promise} if there is only the first argument, the function
  *                               will return a thenable Promise object
  */
-function get(filePath, cb) {
-  if (cb && isFunction(cb)) {
-    return _get(filePath, cb);
+function get(...args) {
+  const cb = (isFunction(args[args.length-1]))? args.pop() : null;
+  const filePath = (args.length > 0) ? args.shift() : null;
+  const opts = (args.length> 0) ? args.shift(): null;
+  if (cb) {
+    return _get(filePath, opts, cb);
   }
 
   return new Promise((resolve, reject) =>
-    _get(filePath, (err, data) => {
+    _get(filePath, opts, (err, data) => {
       if (err) return reject(err);
       return resolve(data);
     })
@@ -77,9 +92,7 @@ function _set(filePath, data, cb) {
   if (json instanceof Error) {
     return cb(new Error(`The file you trying to save at path ${fullPath} is not valid json`));
   }
-
   const dir = path.dirname(fullPath);
-
   return fs.access(dir, fs.F_OK, (notExists) => {
     if (!notExists) return fs.writeFile(fullPath, json, cb);
     return mkdirp(dir, (err) => {
